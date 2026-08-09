@@ -1,4 +1,5 @@
 import express from "express";
+import { randomUUID } from "crypto";
 import {and, desc, eq, getTableColumns, ilike, or, sql} from "drizzle-orm";
 
 import {user} from "../db/schema/index.js";
@@ -65,6 +66,34 @@ router.get("/", async (req, res) => {
     } catch (e) {
         console.error(`GET /users error: ${e}`);
         res.status(500).json({ error: 'Failed to get users' });
+    }
+})
+
+router.post('/', async (req, res) => {
+    try {
+        const { name, email, role, image, imageCldPubId } = req.body;
+
+        if (!name || !email || !role) {
+            return res.status(400).json({ error: 'name, email, and role are required' });
+        }
+
+        const newUser = await db
+            .insert(user)
+            .values({
+                id: randomUUID(),
+                name,
+                email,
+                role: role as any,
+                image,
+                imageCldPubId,
+                emailVerified: false,
+            })
+            .returning();
+
+        res.status(201).json({ data: newUser[0] });
+    } catch (e) {
+        console.error(`POST /users error: ${e}`);
+        res.status(500).json({ error: 'Failed to create user' });
     }
 })
 
